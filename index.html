@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="CryptoNexus — Real-time cryptocurrency analytics dashboard"
+    />
+    <title>CryptoNexus — Live Market Hub</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <!-- GRAIN OVERLAY for cinematic depth -->
+    <div class="grain-overlay" aria-hidden="true"></div>
+
+    <!-- AMBIENT BACKGROUND ORBS -->
+    <div class="ambient" aria-hidden="true">
+      <div class="orb orb--1"></div>
+      <div class="orb orb--2"></div>
+      <div class="orb orb--3"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+       HEADER
+  ═══════════════════════════════════════ -->
+    <header class="header" role="banner">
+      <div class="header__inner">
+        <!-- Logo -->
+        <div class="logo" aria-label="CryptoNexus home">
+          <span class="logo__icon" aria-hidden="true">◈</span>
+          <div class="logo__text">
+            <span class="logo__name">CRYPTO</span
+            ><span class="logo__accent">NEXUS</span>
+          </div>
+          <span class="logo__badge">LIVE</span>
+        </div>
+
+        <!-- Nav -->
+        <nav class="nav" role="navigation" aria-label="Main navigation">
+          <button
+            class="nav__tab nav__tab--active"
+            data-tab="market"
+            aria-selected="true"
+            role="tab"
+            aria-controls="panel-market"
+          >
+            Market
+          </button>
+          <button
+            class="nav__tab"
+            data-tab="watchlist"
+            aria-selected="false"
+            role="tab"
+            aria-controls="panel-watchlist"
+          >
+            Watchlist
+            <span
+              class="nav__badge"
+              id="watchlist-count"
+              aria-label="watchlist count"
+              >0</span
+            >
+          </button>
+        </nav>
+
+        <!-- Theme Toggle -->
+        <button
+          class="theme-toggle"
+          id="theme-toggle"
+          aria-label="Toggle light/dark mode"
+          title="Toggle theme"
+        >
+          <span class="theme-toggle__track" aria-hidden="true">
+            <span class="theme-toggle__thumb"></span>
+          </span>
+          <span
+            class="theme-toggle__icon theme-toggle__icon--dark"
+            aria-hidden="true"
+            >☽</span
+          >
+          <span
+            class="theme-toggle__icon theme-toggle__icon--light"
+            aria-hidden="true"
+            >○</span
+          >
+        </button>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════
+       HERO STATS BAR
+  ═══════════════════════════════════════ -->
+    <section class="stats-bar" aria-label="Market overview">
+      <div class="stats-bar__inner">
+        <div class="stat-item">
+          <span class="stat-item__label">Total Coins</span>
+          <span class="stat-item__value" id="stat-total">—</span>
+        </div>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-item">
+          <span class="stat-item__label">Gainers</span>
+          <span class="stat-item__value stat-item__value--up" id="stat-gainers"
+            >—</span
+          >
+        </div>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-item">
+          <span class="stat-item__label">Losers</span>
+          <span class="stat-item__value stat-item__value--down" id="stat-losers"
+            >—</span
+          >
+        </div>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-item">
+          <span class="stat-item__label">Last Updated</span>
+          <span class="stat-item__value" id="stat-updated">—</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ═══════════════════════════════════════ -->
+    <main class="main" role="main">
+      <!-- CONTROLS BAR -->
+      <div class="controls" role="search">
+        <div class="search-wrapper">
+          <span class="search-wrapper__icon" aria-hidden="true">⌕</span>
+          <input
+            type="search"
+            id="search-input"
+            class="search-input"
+            placeholder="Search coins..."
+            aria-label="Search cryptocurrencies"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <kbd class="search-wrapper__hint" aria-hidden="true">ESC</kbd>
+        </div>
+
+        <div class="controls__right">
+          <label for="sort-select" class="sr-only">Sort by</label>
+          <select
+            id="sort-select"
+            class="sort-select"
+            aria-label="Sort coins by"
+          >
+            <option value="rank">Sort: Rank</option>
+            <option value="name">Sort: Name A–Z</option>
+            <option value="price_desc">Sort: Price ↓</option>
+            <option value="price_asc">Sort: Price ↑</option>
+            <option value="change_desc">Sort: Gainers First</option>
+            <option value="change_asc">Sort: Losers First</option>
+          </select>
+
+          <button
+            class="refresh-btn"
+            id="refresh-btn"
+            aria-label="Refresh market data"
+            title="Refresh"
+          >
+            <span class="refresh-btn__icon" aria-hidden="true">↻</span>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- MARKET PANEL -->
+      <section
+        id="panel-market"
+        class="panel panel--active"
+        role="tabpanel"
+        aria-label="Market data"
+      >
+        <!-- Error Banner -->
+        <div
+          class="error-banner"
+          id="error-banner"
+          role="alert"
+          aria-live="polite"
+          hidden
+        >
+          <span class="error-banner__icon" aria-hidden="true">⚠</span>
+          <span class="error-banner__msg" id="error-msg"
+            >Something went wrong.</span
+          >
+          <button
+            class="error-banner__close"
+            id="error-close"
+            aria-label="Dismiss error"
+            onclick="document.getElementById('error-banner').hidden = true"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Coin Grid -->
+        <div
+          class="coin-grid"
+          id="coin-grid"
+          role="list"
+          aria-label="Cryptocurrency list"
+        >
+          <!-- Cards injected by JS -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="empty-state" hidden>
+          <p class="empty-state__icon" aria-hidden="true">◈</p>
+          <p class="empty-state__title">No coins found</p>
+          <p class="empty-state__sub">Try a different search term</p>
+        </div>
+      </section>
+
+      <!-- WATCHLIST PANEL -->
+      <section
+        id="panel-watchlist"
+        class="panel"
+        role="tabpanel"
+        aria-label="Your watchlist"
+        hidden
+      >
+        <div
+          class="coin-grid"
+          id="watchlist-grid"
+          role="list"
+          aria-label="Watchlist"
+        >
+          <!-- Watchlist cards injected by JS -->
+        </div>
+
+        <!-- Watchlist Empty State -->
+        <div class="empty-state" id="watchlist-empty">
+          <p class="empty-state__icon" aria-hidden="true">★</p>
+          <p class="empty-state__title">Your watchlist is empty</p>
+          <p class="empty-state__sub">
+            Click the ★ on any coin to save it here
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <!-- ═══════════════════════════════════════
+       COIN DETAIL MODAL
+  ═══════════════════════════════════════ -->
+    <dialog
+      class="modal"
+      id="coin-modal"
+      aria-labelledby="modal-title"
+      aria-modal="true"
+    >
+      <div class="modal__inner">
+        <button class="modal__close" id="modal-close" aria-label="Close modal">
+          ✕
+        </button>
+
+        <div class="modal__header">
+          <img
+            class="modal__logo"
+            id="modal-logo"
+            src=""
+            alt=""
+            width="56"
+            height="56"
+          />
+          <div>
+            <h2 class="modal__title" id="modal-title">—</h2>
+            <span class="modal__symbol" id="modal-symbol">—</span>
+          </div>
+          <button
+            class="modal__fav-btn"
+            id="modal-fav-btn"
+            aria-label="Toggle watchlist"
+          >
+            ★
+          </button>
+        </div>
+
+        <div class="modal__stats">
+          <div class="modal__stat">
+            <span class="modal__stat-label">Current Price</span>
+            <span class="modal__stat-value" id="modal-price">—</span>
+          </div>
+          <div class="modal__stat">
+            <span class="modal__stat-label">24h Change</span>
+            <span class="modal__stat-value" id="modal-change">—</span>
+          </div>
+          <div class="modal__stat">
+            <span class="modal__stat-label">Market Cap</span>
+            <span class="modal__stat-value" id="modal-mcap">—</span>
+          </div>
+          <div class="modal__stat">
+            <span class="modal__stat-label">24h Volume</span>
+            <span class="modal__stat-value" id="modal-volume">—</span>
+          </div>
+          <div class="modal__stat">
+            <span class="modal__stat-label">All Time High</span>
+            <span class="modal__stat-value" id="modal-ath">—</span>
+          </div>
+          <div class="modal__stat">
+            <span class="modal__stat-label">Circulating Supply</span>
+            <span class="modal__stat-value" id="modal-supply">—</span>
+          </div>
+        </div>
+
+        <div class="modal__rank">
+          <span>Market Rank</span>
+          <span class="modal__rank-value" id="modal-rank">#—</span>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- SKELETON TEMPLATE -->
+    <template id="skeleton-template">
+      <div
+        class="coin-card coin-card--skeleton"
+        role="listitem"
+        aria-hidden="true"
+      >
+        <div class="coin-card__header">
+          <div class="skeleton skeleton--circle"></div>
+          <div class="skeleton-group">
+            <div class="skeleton skeleton--line skeleton--line-lg"></div>
+            <div class="skeleton skeleton--line skeleton--line-sm"></div>
+          </div>
+          <div class="skeleton skeleton--pill"></div>
+        </div>
+        <div class="coin-card__body">
+          <div class="skeleton skeleton--line skeleton--line-xl"></div>
+          <div class="skeleton skeleton--line skeleton--line-md"></div>
+        </div>
+        <div class="coin-card__footer">
+          <div class="skeleton skeleton--line skeleton--line-md"></div>
+          <div class="skeleton skeleton--btn"></div>
+        </div>
+      </div>
+    </template>
+
+    <script src="main.js"></script>
+  </body>
+</html>
