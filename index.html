@@ -1,0 +1,1381 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Crestview Medical Center — Admin Terminal</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=JetBrains+Mono:wght@300;400;500;700&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #080b0f;
+        --surface: #0d1117;
+        --surface2: #111820;
+        --surface3: #161e28;
+        --border: #1c2730;
+        --border2: #243040;
+        --blue: #4fa8cc;
+        --blue-dim: #2a6888;
+        --blue-glow: rgba(79, 168, 204, 0.12);
+        --blue-pulse: rgba(79, 168, 204, 0.25);
+        --white: #d8e8f2;
+        --white-dim: #8aa4b8;
+        --grey: #567080;
+        --grey-dim: #2e3e4a;
+        --red: #cf5c55;
+        --red-dim: rgba(207, 92, 85, 0.15);
+        --green: #4aa880;
+        --green-dim: rgba(74, 168, 128, 0.15);
+        --yellow: #c8a84a;
+        --yellow-dim: rgba(200, 168, 74, 0.15);
+        --font-mono: "JetBrains Mono", monospace;
+        --font-ui: "Rajdhani", sans-serif;
+        --font-title: "Orbitron", sans-serif;
+
+        --shell-pad: 12px;
+        --output-font: 13px;
+        --header-font: clamp(9px, 2.2vw, 16px);
+      }
+
+      @media (max-width: 480px) {
+        :root {
+          --shell-pad: 8px;
+          --output-font: 12px;
+        }
+      }
+
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--white);
+        font-family: var(--font-mono);
+        overflow: hidden;
+      }
+
+      /* Scanline overlay */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 3px,
+          rgba(0, 0, 0, 0.06) 3px,
+          rgba(0, 0, 0, 0.06) 4px
+        );
+        pointer-events: none;
+        z-index: 9999;
+      }
+
+      /* Ambient corner glow */
+      body::after {
+        content: "";
+        position: fixed;
+        top: -200px;
+        left: -200px;
+        width: 500px;
+        height: 500px;
+        background: radial-gradient(
+          circle,
+          rgba(79, 168, 204, 0.06) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* ══════════════════════════════════ SHELL */
+      .shell {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: var(--shell-pad);
+        gap: 8px;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* ══════════════════════════════════ TOPBAR */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        height: 52px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-bottom: 2px solid var(--blue-dim);
+        flex-shrink: 0;
+        gap: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Subtle shimmer line */
+      .topbar::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--blue),
+          transparent
+        );
+        opacity: 0.4;
+      }
+
+      .topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        flex: 1;
+      }
+
+      .cross-icon {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        opacity: 0.9;
+        filter: drop-shadow(0 0 4px rgba(79, 168, 204, 0.5));
+      }
+
+      .hospital-name {
+        font-family: var(--font-title);
+        font-weight: 900;
+        font-size: var(--header-font);
+        letter-spacing: clamp(1px, 0.4vw, 4px);
+        color: var(--white);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .topbar-divider {
+        width: 1px;
+        height: 18px;
+        background: var(--border2);
+        flex-shrink: 0;
+      }
+
+      .system-label {
+        font-size: clamp(8px, 1.4vw, 11px);
+        color: var(--grey);
+        letter-spacing: 1.5px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-family: var(--font-ui);
+      }
+
+      @media (max-width: 400px) {
+        .system-label {
+          display: none;
+        }
+        .topbar-divider {
+          display: none;
+        }
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+      }
+
+      .staff-badge {
+        text-align: right;
+      }
+      .staff-name {
+        font-family: var(--font-ui);
+        font-size: clamp(10px, 1.8vw, 13px);
+        font-weight: 700;
+        color: var(--blue);
+        letter-spacing: 1px;
+        line-height: 1.2;
+      }
+      .staff-role {
+        font-size: clamp(7px, 1.2vw, 10px);
+        color: var(--grey);
+        letter-spacing: 0.8px;
+        line-height: 1.3;
+      }
+
+      @media (max-width: 520px) {
+        .staff-badge {
+          display: none;
+        }
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--grey-dim);
+        transition:
+          background 0.4s,
+          box-shadow 0.4s;
+        flex-shrink: 0;
+      }
+      .status-dot.online {
+        background: var(--green);
+        box-shadow:
+          0 0 0 3px rgba(74, 168, 128, 0.2),
+          0 0 10px rgba(74, 168, 128, 0.6);
+        animation: pulse-dot 2.5s ease-in-out infinite;
+      }
+      @keyframes pulse-dot {
+        0%,
+        100% {
+          box-shadow:
+            0 0 0 3px rgba(74, 168, 128, 0.2),
+            0 0 10px rgba(74, 168, 128, 0.6);
+        }
+        50% {
+          box-shadow:
+            0 0 0 5px rgba(74, 168, 128, 0.08),
+            0 0 16px rgba(74, 168, 128, 0.9);
+        }
+      }
+
+      /* ══════════════════════════════════ STATUSBAR */
+      .statusbar {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        padding: 0;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+
+      @media (max-width: 480px) {
+        .statusbar {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        border-right: 1px solid var(--border);
+        gap: 2px;
+        min-width: 0;
+      }
+      .stat-item:last-child {
+        border-right: none;
+      }
+
+      @media (max-width: 480px) {
+        .stat-item:nth-child(2) {
+          border-right: none;
+        }
+        .stat-item:nth-child(3) {
+          border-right: 1px solid var(--border);
+        }
+        .stat-item {
+          border-bottom: 1px solid var(--border);
+        }
+        .stat-item:nth-child(3),
+        .stat-item:nth-child(4) {
+          border-bottom: none;
+        }
+      }
+
+      .stat-label {
+        font-size: 9px;
+        color: var(--grey);
+        letter-spacing: 1.5px;
+        font-family: var(--font-ui);
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .stat-value {
+        font-size: clamp(10px, 1.8vw, 12px);
+        color: var(--blue);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+      .stat-value.budget {
+        color: var(--green);
+      }
+      .stat-value.module {
+        color: var(--yellow);
+      }
+      .stat-value.revoked {
+        color: var(--red);
+      }
+
+      /* ══════════════════════════════════ TERMINAL */
+      .terminal-wrap {
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+        min-height: 0;
+      }
+
+      .terminal-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+
+      .term-dots {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .term-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+      }
+      .term-dot.r {
+        background: #cf5c55;
+      }
+      .term-dot.y {
+        background: #c8a84a;
+      }
+      .term-dot.g {
+        background: #4aa880;
+      }
+
+      .term-title {
+        font-size: clamp(9px, 1.6vw, 11px);
+        color: var(--grey);
+        letter-spacing: 1.5px;
+        margin-left: 4px;
+        font-family: var(--font-ui);
+        font-weight: 500;
+        text-transform: uppercase;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Output area */
+      #output {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 18px;
+        line-height: 1.75;
+        font-size: var(--output-font);
+        scroll-behavior: smooth;
+        overscroll-behavior: contain;
+      }
+
+      #output::-webkit-scrollbar {
+        width: 3px;
+      }
+      #output::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #output::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 2px;
+      }
+
+      @media (max-width: 480px) {
+        #output {
+          padding: 10px 12px;
+        }
+      }
+
+      /* Line types */
+      .line {
+        display: block;
+        word-break: break-word;
+      }
+      .line-system {
+        color: var(--blue);
+      }
+      .line-info {
+        color: var(--white);
+      }
+      .line-success {
+        color: var(--green);
+      }
+      .line-error {
+        color: var(--red);
+      }
+      .line-warn {
+        color: var(--yellow);
+      }
+      .line-dim {
+        color: var(--grey);
+      }
+      .line-input {
+        color: var(--grey-dim);
+      }
+      .line-blank {
+        height: 6px;
+        display: block;
+      }
+
+      .line-divider {
+        display: block;
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 6px 0;
+      }
+
+      /* Responsive box drawing — use a card on mobile */
+      .info-box {
+        border: 1px solid var(--blue-dim);
+        border-radius: 2px;
+        padding: 10px 14px;
+        margin: 4px 0;
+        background: var(--blue-glow);
+      }
+      .info-box-title {
+        font-family: var(--font-ui);
+        font-size: 11px;
+        letter-spacing: 2px;
+        color: var(--blue);
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border2);
+      }
+      .info-box-row {
+        display: flex;
+        gap: 8px;
+        padding: 2px 0;
+        font-size: var(--output-font);
+      }
+      .info-box-key {
+        color: var(--grey);
+        min-width: 100px;
+        flex-shrink: 0;
+        font-size: 11px;
+        font-family: var(--font-ui);
+        letter-spacing: 0.5px;
+      }
+      .info-box-val {
+        color: var(--white);
+      }
+
+      .info-box-note {
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px solid var(--border2);
+        color: var(--grey);
+        font-size: 11px;
+        font-style: italic;
+      }
+
+      /* Highlights */
+      .highlight {
+        color: var(--blue);
+      }
+      .hl-green {
+        color: var(--green);
+      }
+      .hl-red {
+        color: var(--red);
+      }
+      .hl-yellow {
+        color: var(--yellow);
+      }
+
+      /* Menu items — styled chips on mobile */
+      .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 6px;
+        margin: 6px 0;
+      }
+      .menu-item {
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        padding: 8px 12px;
+        border-left: 2px solid var(--blue-dim);
+        cursor: default;
+      }
+      .menu-item-cmd {
+        font-size: var(--output-font);
+        color: var(--blue);
+        font-family: var(--font-mono);
+      }
+      .menu-item-desc {
+        font-size: 11px;
+        color: var(--grey);
+        font-family: var(--font-ui);
+        margin-top: 2px;
+      }
+
+      /* ══════════════════════════════════ INPUT ROW */
+      .input-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-top: 1px solid var(--border);
+        background: var(--surface2);
+        flex-shrink: 0;
+      }
+
+      .prompt-label {
+        color: var(--blue);
+        font-size: clamp(11px, 2vw, 13px);
+        white-space: nowrap;
+        flex-shrink: 0;
+        text-shadow: 0 0 8px rgba(79, 168, 204, 0.5);
+      }
+
+      #cmd-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--white);
+        font-family: var(--font-mono);
+        font-size: clamp(12px, 2vw, 13px);
+        caret-color: var(--blue);
+        min-width: 0;
+      }
+
+      #cmd-input::placeholder {
+        color: var(--grey-dim);
+      }
+      #cmd-input:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+
+      .submit-btn {
+        background: transparent;
+        border: 1px solid var(--blue-dim);
+        color: var(--blue);
+        font-family: var(--font-ui);
+        font-size: clamp(10px, 1.8vw, 11px);
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        padding: 6px 14px;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition:
+          background 0.15s,
+          box-shadow 0.15s;
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+      .submit-btn:hover:not(:disabled) {
+        background: var(--blue-glow);
+        box-shadow: 0 0 10px rgba(79, 168, 204, 0.2);
+      }
+      .submit-btn:active:not(:disabled) {
+        background: var(--blue-pulse);
+      }
+      .submit-btn:disabled {
+        opacity: 0.25;
+        cursor: not-allowed;
+      }
+
+      /* ══════════════════════════════════ LOCKED OVERLAY */
+      .locked-overlay {
+        display: none;
+        position: absolute;
+        inset: 0;
+        background: rgba(8, 11, 15, 0.94);
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 12px;
+        z-index: 10;
+        backdrop-filter: blur(2px);
+      }
+      .locked-overlay.visible {
+        display: flex;
+      }
+
+      .lock-icon {
+        font-size: 32px;
+        opacity: 0.5;
+      }
+      .lock-title {
+        font-family: var(--font-title);
+        font-size: clamp(11px, 2.5vw, 14px);
+        color: var(--red);
+        letter-spacing: 3px;
+      }
+      .lock-sub {
+        font-size: 11px;
+        color: var(--grey);
+        letter-spacing: 2px;
+        text-align: center;
+        line-height: 2;
+      }
+
+      /* ══════════════════════════════════ ANIMATIONS */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .line,
+      hr.line-divider,
+      .info-box,
+      .menu-grid {
+        animation: fadeIn 0.15s ease both;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <!-- TOPBAR -->
+      <div class="topbar">
+        <div class="topbar-left">
+          <svg
+            class="cross-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#4fa8cc"
+            stroke-width="2"
+          >
+            <path d="M12 2v20M2 12h20" />
+            <rect
+              x="8"
+              y="8"
+              width="8"
+              height="8"
+              rx="1"
+              stroke="#4fa8cc"
+              stroke-width="1.5"
+              fill="none"
+            />
+          </svg>
+          <span class="hospital-name">Crestview Medical Center</span>
+          <div class="topbar-divider"></div>
+          <span class="system-label">CRESTVIEW OS v2.1</span>
+        </div>
+        <div class="topbar-right">
+          <div class="staff-badge" id="staff-badge" style="display: none">
+            <div class="staff-name">SARAH REYES</div>
+            <div class="staff-role">
+              NIGHT SHIFT ADMIN · RECORDS &amp; INVENTORY
+            </div>
+          </div>
+          <div class="status-indicator">
+            <div class="status-dot" id="status-dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATUSBAR -->
+      <div class="statusbar">
+        <div class="stat-item">
+          <span class="stat-label">Session</span>
+          <span class="stat-value" id="stat-session">INACTIVE</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Module</span>
+          <span class="stat-value module" id="stat-module">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Budget</span>
+          <span class="stat-value budget" id="stat-budget">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Access</span>
+          <span class="stat-value" id="stat-access">LEVEL 3</span>
+        </div>
+      </div>
+
+      <!-- TERMINAL -->
+      <div class="terminal-wrap">
+        <div class="terminal-header">
+          <div class="term-dots">
+            <div class="term-dot r"></div>
+            <div class="term-dot y"></div>
+            <div class="term-dot g"></div>
+          </div>
+          <span class="term-title">Admin Terminal — Records Department</span>
+        </div>
+
+        <div id="output"></div>
+
+        <div class="locked-overlay" id="locked-overlay">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-title">TERMINAL LOCKED</div>
+          <div class="lock-sub">
+            ACCESS REVOKED<br />SECURITY HAS BEEN NOTIFIED
+          </div>
+        </div>
+
+        <div class="input-row">
+          <span class="prompt-label" id="prompt-label">[CRESTVIEW]&gt;</span>
+          <input
+            id="cmd-input"
+            type="password"
+            placeholder="Enter staff PIN…"
+            autocomplete="off"
+            inputmode="numeric"
+          />
+          <button class="submit-btn" id="submit-btn">ENTER</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      const output = document.getElementById("output");
+      const cmdInput = document.getElementById("cmd-input");
+      const submitBtn = document.getElementById("submit-btn");
+      const promptLabel = document.getElementById("prompt-label");
+      const statusDot = document.getElementById("status-dot");
+      const staffBadge = document.getElementById("staff-badge");
+      const statSession = document.getElementById("stat-session");
+      const statModule = document.getElementById("stat-module");
+      const statBudget = document.getElementById("stat-budget");
+      const lockedOverlay = document.getElementById("locked-overlay");
+
+      const MASTER_PIN = "9999",
+        VAULT_WORD = "reyes",
+        UNIT_PRICE = 50;
+      let state = "BOOT",
+        loginAttempts = 3,
+        balance = 50000,
+        sessionActive = false;
+
+      /* ── helpers ── */
+      function print(text = "", cls = "line-info") {
+        if (text === "---") {
+          const hr = document.createElement("hr");
+          hr.className = "line-divider";
+          output.appendChild(hr);
+        } else if (text === "") {
+          const b = document.createElement("span");
+          b.className = "line-blank";
+          output.appendChild(b);
+        } else {
+          const s = document.createElement("span");
+          s.className = "line " + cls;
+          s.innerHTML = text;
+          output.appendChild(s);
+        }
+        output.scrollTop = output.scrollHeight;
+      }
+
+      function printBox(title, rows, note = null) {
+        const box = document.createElement("div");
+        box.className = "info-box";
+        let html = `<div class="info-box-title">${title}</div>`;
+        for (const [k, v] of rows)
+          html += `<div class="info-box-row"><span class="info-box-key">${k}</span><span class="info-box-val">${v}</span></div>`;
+        if (note) html += `<div class="info-box-note">${note}</div>`;
+        box.innerHTML = html;
+        output.appendChild(box);
+        output.scrollTop = output.scrollHeight;
+      }
+
+      function printMenu(items) {
+        const grid = document.createElement("div");
+        grid.className = "menu-grid";
+        for (const [cmd, desc] of items) {
+          grid.innerHTML += `
+      <div class="menu-item">
+        <div class="menu-item-cmd">${cmd}</div>
+        <div class="menu-item-desc">${desc}</div>
+      </div>`;
+        }
+        output.appendChild(grid);
+        output.scrollTop = output.scrollHeight;
+      }
+
+      function updateStats() {
+        statBudget.textContent = sessionActive
+          ? "$" +
+            balance.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "—";
+        statSession.textContent = sessionActive ? "ACTIVE" : "INACTIVE";
+      }
+
+      function setModule(name) {
+        statModule.textContent = name || "—";
+        promptLabel.textContent = name ? "[" + name + "]>" : "[CRESTVIEW]>";
+      }
+
+      function lockTerminal() {
+        cmdInput.disabled = true;
+        submitBtn.disabled = true;
+        lockedOverlay.classList.add("visible");
+        statusDot.className = "status-dot";
+        statSession.textContent = "REVOKED";
+        statSession.className = "stat-value revoked";
+      }
+
+      function setInputMode(type = "text", placeholder = "", inputmode = "") {
+        cmdInput.type = type;
+        cmdInput.placeholder = placeholder;
+        cmdInput.inputMode =
+          inputmode || (type === "password" ? "numeric" : "text");
+        cmdInput.value = "";
+        cmdInput.focus();
+      }
+
+      /* ── BOOT ── */
+      function bootSequence() {
+        print("CRESTVIEW OS v2.1  ·  Records & Inventory Dept.", "line-system");
+        print("---");
+        print("⚠  RESTRICTED ACCESS — Authorized Personnel Only", "line-warn");
+        print(
+          "All activity on this terminal is logged and monitored.",
+          "line-dim",
+        );
+        print("");
+        print("Enter your Staff PIN to begin session.", "line-info");
+        print(
+          'Attempts remaining: <span class="hl-yellow">' +
+            loginAttempts +
+            "</span>",
+          "line-dim",
+        );
+        print("");
+        setInputMode("password", "Enter staff PIN…", "numeric");
+      }
+
+      function handleBoot(input) {
+        print("> " + "•".repeat(input.length), "line-input");
+        if (input === MASTER_PIN) {
+          print("");
+          print("Authenticating…", "line-dim");
+          setTimeout(() => {
+            print(
+              '<span class="hl-green">✔  Authentication successful.</span>',
+              "line-info",
+            );
+            print("");
+            printBox("Session Started", [
+              ["Staff", "Sarah Reyes"],
+              ["Role", "Night Shift Admin · Records & Inventory"],
+              ["Access", "Level 3"],
+              ["Session", new Date().toLocaleTimeString()],
+            ]);
+            print("");
+            sessionActive = true;
+            statusDot.classList.add("online");
+            staffBadge.style.display = "block";
+            updateStats();
+            state = "MAIN";
+            setInputMode("text", "Type a command…");
+            showMainMenu();
+          }, 600);
+        } else {
+          loginAttempts--;
+          print("");
+          if (loginAttempts <= 0) {
+            print(
+              '<span class="hl-red">✘  Incorrect PIN. Maximum attempts reached.</span>',
+              "line-info",
+            );
+            print("");
+            print("ACCESS REVOKED.", "line-error");
+            print("Security team has been notified.", "line-error");
+            print("This incident has been logged.", "line-dim");
+            lockTerminal();
+          } else {
+            print(
+              '<span class="hl-red">✘  Incorrect PIN.</span> Attempts remaining: <span class="hl-yellow">' +
+                loginAttempts +
+                "</span>",
+              "line-info",
+            );
+            print("");
+            setInputMode("password", "Enter staff PIN…", "numeric");
+          }
+        }
+      }
+
+      /* ── MAIN MENU ── */
+      function showMainMenu() {
+        setModule(null);
+        print("MAIN TERMINAL  ·  Available Modules:", "line-system");
+        print("---");
+        printMenu([
+          ["records", "Patient Records & Budget Office"],
+          ["inventory", "Supply Requisition Portal"],
+          ["vault", "Secure File Access"],
+          ["logout", "End Session"],
+        ]);
+        print("---");
+      }
+
+      function handleMain(input) {
+        print("[CRESTVIEW]> " + input, "line-input");
+        print("");
+        switch (input.toLowerCase().trim()) {
+          case "records":
+            state = "BANK";
+            setModule("RECORDS");
+            showRecordsMenu();
+            break;
+          case "inventory":
+            state = "SHOP";
+            setModule("INVENTORY");
+            showShop();
+            break;
+          case "vault":
+            state = "VAULT";
+            setModule("VAULT");
+            showVault();
+            break;
+          case "logout":
+            handleLogout();
+            break;
+          default:
+            print(
+              '<span class="hl-red">✘  Unrecognized command:</span> "' +
+                input +
+                '"',
+              "line-info",
+            );
+            print("   Please refer to the menu above.", "line-dim");
+            print("");
+        }
+      }
+
+      /* ── RECORDS / BANK ── */
+      function showRecordsMenu() {
+        print("PATIENT RECORDS & BUDGET OFFICE", "line-system");
+        print("---");
+        print(
+          'Current Budget: <span class="hl-green">$' +
+            balance.toLocaleString("en-US", { minimumFractionDigits: 2 }) +
+            "</span>",
+          "line-info",
+        );
+        print("---");
+        printMenu([
+          ["receive", "Log incoming funding"],
+          ["allocate", "Allocate funds"],
+          ["budget", "View current budget"],
+          ["back", "Return to main terminal"],
+        ]);
+        print("---");
+      }
+
+      let bankStep = null;
+      function handleBank(input) {
+        print("[RECORDS]> " + input, "line-input");
+        print("");
+        if (bankStep === "receive_amount") {
+          const amt = parseFloat(input);
+          if (isNaN(amt) || amt <= 0) {
+            print(
+              '<span class="hl-red">✘  Invalid amount. Please enter a positive number.</span>',
+              "line-info",
+            );
+          } else {
+            balance += amt;
+            updateStats();
+            print(
+              '<span class="hl-green">✔  Funding received: $' +
+                amt.toLocaleString("en-US", { minimumFractionDigits: 2 }) +
+                "</span>",
+              "line-info",
+            );
+            print(
+              '   Updated Budget: <span class="hl-green">$' +
+                balance.toLocaleString("en-US", { minimumFractionDigits: 2 }) +
+                "</span>",
+              "line-info",
+            );
+          }
+          bankStep = null;
+          print("");
+          showRecordsMenu();
+          return;
+        }
+        if (bankStep === "allocate_amount") {
+          const amt = parseFloat(input);
+          if (isNaN(amt) || amt <= 0) {
+            print(
+              '<span class="hl-red">✘  Invalid amount.</span>',
+              "line-info",
+            );
+          } else if (amt > balance) {
+            print(
+              '<span class="hl-red">✘  BUDGET LIMIT REACHED.</span>',
+              "line-info",
+            );
+            print(
+              "   Requested allocation exceeds available funds.",
+              "line-dim",
+            );
+            print("   Senior authorization required for override.", "line-dim");
+          } else {
+            balance -= amt;
+            updateStats();
+            print(
+              '<span class="hl-green">✔  Funds allocated: $' +
+                amt.toLocaleString("en-US", { minimumFractionDigits: 2 }) +
+                "</span>",
+              "line-info",
+            );
+            print(
+              '   Remaining Budget: <span class="hl-green">$' +
+                balance.toLocaleString("en-US", { minimumFractionDigits: 2 }) +
+                "</span>",
+              "line-info",
+            );
+          }
+          bankStep = null;
+          print("");
+          showRecordsMenu();
+          return;
+        }
+        switch (input.toLowerCase().trim()) {
+          case "receive":
+            bankStep = "receive_amount";
+            print("Enter funding amount to log ($):", "line-dim");
+            setInputMode("text", "e.g. 5000.00", "decimal");
+            return;
+          case "allocate":
+            bankStep = "allocate_amount";
+            print("Enter amount to allocate ($):", "line-dim");
+            setInputMode("text", "e.g. 1200.00", "decimal");
+            return;
+          case "budget":
+            print(
+              'Current Hospital Budget: <span class="hl-green">$' +
+                balance.toLocaleString("en-US", { minimumFractionDigits: 2 }) +
+                "</span>",
+              "line-info",
+            );
+            print("");
+            showRecordsMenu();
+            break;
+          case "back":
+            state = "MAIN";
+            setModule(null);
+            print("Returning to main terminal.", "line-dim");
+            print("");
+            showMainMenu();
+            break;
+          default:
+            print(
+              '<span class="hl-red">✘  Unknown records command:</span> "' +
+                input +
+                '"',
+              "line-info",
+            );
+            print("");
+            showRecordsMenu();
+        }
+      }
+
+      /* ── SHOP ── */
+      let shopStep = null,
+        shopCategory = null;
+      function showShop() {
+        print("SUPPLY REQUISITION PORTAL", "line-system");
+        print("---");
+        print(
+          'Hospital Budget:  <span class="hl-green">$' +
+            balance.toLocaleString("en-US", { minimumFractionDigits: 2 }) +
+            "</span>",
+          "line-info",
+        );
+        print(
+          'Unit Price:       <span class="highlight">$' +
+            UNIT_PRICE +
+            ".00 per unit</span>",
+          "line-info",
+        );
+        print(
+          "Bulk discounts:   6–10 units → 10% off  ·  11+ units → 20% off",
+          "line-dim",
+        );
+        print("---");
+        print("Select supply category:", "line-dim");
+        printMenu([
+          ["medical", "Gloves, syringes, medications"],
+          ["equipment", "Monitors, beds, IV stands"],
+          ["back", "Return to main terminal"],
+        ]);
+        print("---");
+      }
+
+      function handleShop(input) {
+        print("[INVENTORY]> " + input, "line-input");
+        print("");
+        if (shopStep === "qty") {
+          const qty = parseInt(input);
+          if (isNaN(qty) || qty <= 0) {
+            print(
+              '<span class="hl-red">✘  Invalid quantity.</span>',
+              "line-info",
+            );
+            shopStep = null;
+            print("");
+            showShop();
+            return;
+          }
+          let discount = 0,
+            discountLabel = "None";
+          if (qty >= 11) {
+            discount = 0.2;
+            discountLabel = "20% (Bulk Order)";
+          } else if (qty >= 6) {
+            discount = 0.1;
+            discountLabel = "10% (Volume Discount)";
+          }
+          const gross = qty * UNIT_PRICE,
+            savings = gross * discount,
+            total = gross - savings;
+          printBox("Requisition Summary", [
+            ["Category", shopCategory.toUpperCase()],
+            ["Quantity", qty + " units"],
+            ["Unit Price", "$" + UNIT_PRICE + ".00"],
+            ["Subtotal", "$" + gross.toFixed(2)],
+            [
+              "Discount",
+              '<span class="hl-yellow">' +
+                discountLabel +
+                "</span>  (−$" +
+                savings.toFixed(2) +
+                ")",
+            ],
+            [
+              "TOTAL DUE",
+              '<span class="hl-green">$' + total.toFixed(2) + "</span>",
+            ],
+          ]);
+          if (total > balance) {
+            print(
+              '<span class="hl-red">✘  BUDGET LIMIT REACHED. Insufficient funds.</span>',
+              "line-info",
+            );
+          } else {
+            balance -= total;
+            updateStats();
+            print(
+              '<span class="hl-green">✔  Requisition approved.</span> ' +
+                qty +
+                " unit(s) of " +
+                shopCategory +
+                " supplies ordered.",
+              "line-info",
+            );
+            print(
+              '   Remaining Budget: <span class="hl-green">$' +
+                balance.toLocaleString("en-US", { minimumFractionDigits: 2 }) +
+                "</span>",
+              "line-info",
+            );
+          }
+          shopStep = null;
+          shopCategory = null;
+          print("");
+          showShop();
+          return;
+        }
+        switch (input.toLowerCase().trim()) {
+          case "medical":
+          case "equipment":
+            shopCategory = input.toLowerCase().trim();
+            shopStep = "qty";
+            print(
+              'Category: <span class="highlight">' +
+                shopCategory.toUpperCase() +
+                "</span>",
+              "line-info",
+            );
+            print("Enter quantity of units to requisition:", "line-dim");
+            setInputMode("text", "e.g. 12", "numeric");
+            return;
+          case "back":
+            state = "MAIN";
+            setModule(null);
+            shopStep = null;
+            shopCategory = null;
+            print("Returning to main terminal.", "line-dim");
+            print("");
+            showMainMenu();
+            break;
+          default:
+            print(
+              '<span class="hl-red">✘  Unknown command:</span> "' + input + '"',
+              "line-info",
+            );
+            print("");
+            showShop();
+        }
+      }
+
+      /* ── VAULT ── */
+      let vaultStep = null;
+      function showVault() {
+        print("SECURE FILE ACCESS — RESTRICTED", "line-system");
+        print("---");
+        printBox(
+          "Sealed Document",
+          [
+            ["File", "Patient Legal File #CMC-2024-0047"],
+            [
+              "Status",
+              '<span class="hl-red">SEALED — Court Order Ref. HC/2024/CR-119</span>',
+            ],
+            ["Access", "Senior Staff Only"],
+          ],
+          "This file is indexed under the attending physician's last name.",
+        );
+        print("");
+        print(
+          'You have <span class="hl-yellow">ONE ATTEMPT</span> to enter the access keyword.',
+          "line-info",
+        );
+        print("---");
+        vaultStep = "guess";
+        setInputMode("text", "Enter access keyword…");
+      }
+
+      function handleVault(input) {
+        print("[VAULT]> " + "•".repeat(input.length), "line-input");
+        print("");
+        if (input.toLowerCase().trim() === VAULT_WORD) {
+          print(
+            '<span class="hl-green">✔  Access keyword accepted. Decrypting…</span>',
+            "line-info",
+          );
+          setTimeout(() => {
+            print("");
+            printBox(
+              "PATIENT LEGAL FILE #CMC-2024-0047 — UNSEALED",
+              [
+                ["Patient", "[REDACTED]"],
+                ["Physician", "Dr. E. Hartley · Cardiothoracic Surgery"],
+                ["Incident", "Procedure irregularity — 14 March 2024"],
+                ["Court Ref", "HC/2024/CR-119"],
+                [
+                  "Status",
+                  '<span class="hl-yellow">Under Internal Review — DO NOT DISCLOSE</span>',
+                ],
+              ],
+              '"Transparency is the foundation of good medicine." — Dr. Hartley filed this report voluntarily.',
+            );
+            print("");
+            print(
+              "File access logged. Session timestamp recorded.",
+              "line-dim",
+            );
+            print("");
+            vaultStep = null;
+            state = "MAIN";
+            setModule(null);
+            showMainMenu();
+          }, 800);
+        } else {
+          print(
+            '<span class="hl-red">✘  Incorrect access keyword.</span>',
+            "line-info",
+          );
+          print("   Unauthorized access attempt has been logged.", "line-dim");
+          print("   Returning to main terminal.", "line-dim");
+          print("");
+          vaultStep = null;
+          state = "MAIN";
+          setModule(null);
+          showMainMenu();
+        }
+      }
+
+      /* ── LOGOUT ── */
+      function handleLogout() {
+        sessionActive = false;
+        statusDot.classList.remove("online");
+        staffBadge.style.display = "none";
+        updateStats();
+        print("---");
+        print("Session terminated.", "line-dim");
+        print("Goodbye, Sarah Reyes.", "line-system");
+        print("Terminal returned to standby.", "line-dim");
+        print("---");
+        cmdInput.disabled = true;
+        submitBtn.disabled = true;
+        statSession.textContent = "ENDED";
+        setModule(null);
+      }
+
+      /* ── DISPATCH ── */
+      function handleInput(raw) {
+        const input = raw.trim();
+        if (!input) return;
+        cmdInput.value = "";
+        switch (state) {
+          case "BOOT":
+            handleBoot(input);
+            break;
+          case "MAIN":
+            handleMain(input);
+            break;
+          case "BANK":
+            handleBank(input);
+            break;
+          case "SHOP":
+            handleShop(input);
+            break;
+          case "VAULT":
+            handleVault(input);
+            break;
+        }
+      }
+
+      submitBtn.addEventListener("click", () => handleInput(cmdInput.value));
+      cmdInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") handleInput(cmdInput.value);
+      });
+
+      bootSequence();
+      cmdInput.focus();
+    </script>
+  </body>
+</html>
